@@ -1,3 +1,5 @@
+// components/compliance-reports.tsx 
+
 "use client"
 
 import { useState } from "react"
@@ -8,80 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Download, Calendar, Shield, FileText, TrendingUp, AlertCircle } from "lucide-react"
-
-const complianceScores = [
-  { framework: "PCI-DSS", score: 87, color: "text-green-600", bgColor: "bg-green-100" },
-  { framework: "HIPAA", score: 92, color: "text-green-600", bgColor: "bg-green-100" },
-  { framework: "ISO27001", score: 78, color: "text-yellow-600", bgColor: "bg-yellow-100" },
-  { framework: "SOX", score: 95, color: "text-green-600", bgColor: "bg-green-100" },
-]
-
-const complianceReports = [
-  {
-    id: 1,
-    name: "Q4 2024 PCI-DSS Assessment",
-    framework: "PCI-DSS",
-    dateGenerated: "2024-01-15",
-    score: 87,
-    status: "Complete",
-  },
-  {
-    id: 2,
-    name: "HIPAA Security Review",
-    framework: "HIPAA",
-    dateGenerated: "2024-01-10",
-    score: 92,
-    status: "Complete",
-  },
-  {
-    id: 3,
-    name: "ISO27001 Annual Audit",
-    framework: "ISO27001",
-    dateGenerated: "2024-01-05",
-    score: 78,
-    status: "In Progress",
-  },
-  {
-    id: 4,
-    name: "SOX IT Controls Review",
-    framework: "SOX",
-    dateGenerated: "2024-01-01",
-    score: 95,
-    status: "Complete",
-  },
-]
-
-const trendData = [
-  { month: "Jul", "PCI-DSS": 82, HIPAA: 88, ISO27001: 75, SOX: 91 },
-  { month: "Aug", "PCI-DSS": 84, HIPAA: 89, ISO27001: 76, SOX: 92 },
-  { month: "Sep", "PCI-DSS": 85, HIPAA: 90, ISO27001: 77, SOX: 93 },
-  { month: "Oct", "PCI-DSS": 86, HIPAA: 91, ISO27001: 77, SOX: 94 },
-  { month: "Nov", "PCI-DSS": 87, HIPAA: 91, ISO27001: 78, SOX: 94 },
-  { month: "Dec", "PCI-DSS": 87, HIPAA: 92, ISO27001: 78, SOX: 95 },
-]
-
-const recommendations = [
-  {
-    framework: "ISO27001",
-    priority: "High",
-    recommendation: "Implement multi-factor authentication for all administrative accounts",
-    impact: "Could improve score by 8-12 points",
-  },
-  {
-    framework: "PCI-DSS",
-    priority: "Medium",
-    recommendation: "Update firewall rules to restrict unnecessary network access",
-    impact: "Could improve score by 5-8 points",
-  },
-  {
-    framework: "HIPAA",
-    priority: "Low",
-    recommendation: "Enhance audit logging for patient data access",
-    impact: "Could improve score by 2-4 points",
-  },
-]
+import { useDashboardData } from "@/hooks/use-api-data"
 
 export function ComplianceReports() {
+  const { 
+    complianceScores, 
+    complianceReports, 
+    complianceTrendData: trendData, 
+    complianceRecommendations: recommendations 
+  } = useDashboardData() // <-- DATA FETCHED HERE
+
+  // --- REMOVED: const complianceScores = [...]
+  // --- REMOVED: const complianceReports = [...]
+  // --- REMOVED: const trendData = [...]
+  // --- REMOVED: const recommendations = [...]
+
   const [frameworkFilter, setFrameworkFilter] = useState("all")
   const [dateRange, setDateRange] = useState("last-quarter")
 
@@ -113,6 +56,16 @@ export function ComplianceReports() {
   const filteredReports = complianceReports.filter((report) => {
     return frameworkFilter === "all" || report.framework === frameworkFilter
   })
+  
+  // Helper array for chart lines (since it's hardcoded in the original)
+  const frameworks = ["PCI-DSS", "HIPAA", "ISO27001", "SOX"]
+  const trendLineColors = {
+      "PCI-DSS": "#0d9488",
+      "HIPAA": "#059669",
+      "ISO27001": "#dc2626",
+      "SOX": "#7c3aed"
+  }
+  const isChartDataAvailable = trendData.length > 0;
 
   return (
     <div className="p-6 space-y-6">
@@ -194,18 +147,30 @@ export function ComplianceReports() {
             </CardHeader>
             <CardContent>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis domain={[70, 100]} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="PCI-DSS" stroke="#0d9488" strokeWidth={2} />
-                    <Line type="monotone" dataKey="HIPAA" stroke="#059669" strokeWidth={2} />
-                    <Line type="monotone" dataKey="ISO27001" stroke="#dc2626" strokeWidth={2} />
-                    <Line type="monotone" dataKey="SOX" stroke="#7c3aed" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {isChartDataAvailable ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={trendData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis domain={[70, 100]} />
+                            <Tooltip />
+                            {/* Dynamically render lines for each framework */}
+                            {frameworks.map(framework => (
+                                <Line 
+                                    key={framework}
+                                    type="monotone" 
+                                    dataKey={framework} 
+                                    stroke={trendLineColors[framework as keyof typeof trendLineColors]} 
+                                    strokeWidth={2} 
+                                />
+                            ))}
+                        </LineChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-slate-500">
+                        No compliance trend data available.
+                    </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -221,16 +186,20 @@ export function ComplianceReports() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recommendations.map((rec, index) => (
-                <div key={index} className="p-4 border rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline">{rec.framework}</Badge>
-                    <Badge className={getPriorityColor(rec.priority)}>{rec.priority}</Badge>
+              {recommendations.length > 0 ? (
+                recommendations.map((rec, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline">{rec.framework}</Badge>
+                      <Badge className={getPriorityColor(rec.priority)}>{rec.priority}</Badge>
+                    </div>
+                    <p className="text-sm font-medium text-slate-800">{rec.recommendation}</p>
+                    <p className="text-xs text-slate-500">{rec.impact}</p>
                   </div>
-                  <p className="text-sm font-medium text-slate-800">{rec.recommendation}</p>
-                  <p className="text-xs text-slate-500">{rec.impact}</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No recommendations available.</p>
+              )}
             </CardContent>
           </Card>
         </div>

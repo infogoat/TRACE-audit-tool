@@ -1,125 +1,45 @@
+// components/auto-remediation-tools.tsx (MODIFIED)
+
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
-  Package,
-  Shield,
-  Key,
-  Settings,
-  Database,
-  Server,
   CheckCircle,
   XCircle,
   Clock,
   Play,
   Calendar,
 } from "lucide-react"
+import { useDashboardData } from "@/hooks/use-api-data"
 
-const remediationTools = [
-  {
-    id: 1,
-    name: "Patch Outdated Packages",
-    description: "Automatically updates system packages to their latest secure versions",
-    icon: Package,
-    category: "System Updates",
-    lastRun: "2 hours ago",
-    status: "ready",
-  },
-  {
-    id: 2,
-    name: "Fix File Permissions",
-    description: "Corrects excessive file permissions on sensitive directories",
-    icon: Key,
-    category: "Access Control",
-    lastRun: "1 day ago",
-    status: "ready",
-  },
-  {
-    id: 3,
-    name: "Harden SSH Configuration",
-    description: "Applies security best practices to SSH server configuration",
-    icon: Shield,
-    category: "Network Security",
-    lastRun: "3 days ago",
-    status: "ready",
-  },
-  {
-    id: 4,
-    name: "Database Security Scan",
-    description: "Identifies and fixes common database security misconfigurations",
-    icon: Database,
-    category: "Database Security",
-    lastRun: "5 days ago",
-    status: "running",
-  },
-  {
-    id: 5,
-    name: "Firewall Rule Optimization",
-    description: "Reviews and optimizes firewall rules for better security",
-    icon: Server,
-    category: "Network Security",
-    lastRun: "1 week ago",
-    status: "ready",
-  },
-  {
-    id: 6,
-    name: "SSL Certificate Renewal",
-    description: "Automatically renews expiring SSL certificates",
-    icon: Settings,
-    category: "Certificates",
-    lastRun: "2 weeks ago",
-    status: "scheduled",
-  },
-]
-
-const remediationHistory = [
-  {
-    toolName: "Patch Outdated Packages",
-    dateRun: "2024-01-15 14:30",
-    issuesFixed: 12,
-    status: "Success",
-    duration: "5m 23s",
-  },
-  {
-    toolName: "Fix File Permissions",
-    dateRun: "2024-01-14 09:15",
-    issuesFixed: 8,
-    status: "Success",
-    duration: "2m 45s",
-  },
-  {
-    toolName: "Database Security Scan",
-    dateRun: "2024-01-13 16:20",
-    issuesFixed: 0,
-    status: "Failed",
-    duration: "1m 12s",
-  },
-  {
-    toolName: "Harden SSH Configuration",
-    dateRun: "2024-01-12 11:45",
-    issuesFixed: 5,
-    status: "Success",
-    duration: "3m 18s",
-  },
-]
-
-import { useRef, useEffect } from "react"
+// Icons and Tool structures are now imported as part of the RemediationTool[] type (icon: any)
+// The original component used: Package, Shield, Key, Settings, Database, Server
 
 export function AutoRemediationTools() {
-  const [runningTools, setRunningTools] = useState<number[]>([4])
+  const { remediationTools, remediationHistory } = useDashboardData() // <-- DATA FETCHED HERE
+
+  // --- REMOVED: const remediationTools = [...]
+  // --- REMOVED: const remediationHistory = [...]
+
+  const [runningTools, setRunningTools] = useState<number[]>([])
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    // If tools are fetched and some are marked 'running' in the data, initialize the state
+    const initialRunning = remediationTools.filter(t => t.status === "running").map(t => t.id)
+    setRunningTools(initialRunning)
+
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [])
+  }, [remediationTools])
+
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -155,6 +75,7 @@ export function AutoRemediationTools() {
     }
     timeoutRef.current = setTimeout(() => {
       setRunningTools((prev) => prev.filter((id) => id !== toolId))
+      // ⚠️ Add your backend call here to start the script and update status
     }, 3000)
   }
 
@@ -181,7 +102,8 @@ export function AutoRemediationTools() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-teal-100 rounded-lg">
-                      <IconComponent className="h-6 w-6 text-teal-600" />
+                      {/* You must ensure the Icon property is the actual Lucide component from the backend/script response */}
+                      {IconComponent && <IconComponent className="h-6 w-6 text-teal-600" />}
                     </div>
                     <div className="flex items-center gap-2">{getStatusIcon(isRunning ? "running" : tool.status)}</div>
                   </div>
@@ -205,7 +127,8 @@ export function AutoRemediationTools() {
                       <span className="text-slate-500">Progress:</span>
                       <span className="text-slate-700">Running...</span>
                     </div>
-                    <Progress value={65} className="h-2" />
+                    {/* Placeholder Progress value */}
+                    <Progress value={65} className="h-2" /> 
                   </div>
                 )}
 

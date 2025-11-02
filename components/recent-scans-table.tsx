@@ -1,50 +1,13 @@
+// components/recent-scans-table.tsx 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Play, Eye, MoreHorizontal } from "lucide-react"
+import { useDashboardData } from "@/hooks/use-api-data"
 
 export function RecentScansTable() {
-  const scans = [
-    {
-      id: 1,
-      system: "web-server-01.prod",
-      date: "2024-01-15 14:30",
-      status: "Completed",
-      issues: 8,
-      severity: "High",
-    },
-    {
-      id: 2,
-      system: "db-cluster-02.prod",
-      date: "2024-01-15 13:45",
-      status: "In Progress",
-      issues: 0,
-      severity: "None",
-    },
-    {
-      id: 3,
-      system: "api-gateway.staging",
-      date: "2024-01-15 12:15",
-      status: "Completed",
-      issues: 15,
-      severity: "Critical",
-    },
-    {
-      id: 4,
-      system: "load-balancer.prod",
-      date: "2024-01-15 11:30",
-      status: "Failed",
-      issues: 0,
-      severity: "None",
-    },
-    {
-      id: 5,
-      system: "cache-server.prod",
-      date: "2024-01-15 10:45",
-      status: "Completed",
-      issues: 3,
-      severity: "Medium",
-    },
-  ]
+  const { recentScans: scans } = useDashboardData() // <-- DATA FETCHED HERE
+
+  // --- REMOVED: const scans = [...]
 
   const getStatusBadge = (status: string) => {
     switch (status) {

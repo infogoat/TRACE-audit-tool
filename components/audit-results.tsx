@@ -1,3 +1,5 @@
+// components/audit-results.tsx 
+
 "use client"
 
 import { useState } from "react"
@@ -5,68 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, Download, Play, X } from "lucide-react"
+import { useDashboardData } from "@/hooks/use-api-data"
 
 export function AuditResults() {
+  const { auditResults } = useDashboardData() // <-- DATA FETCHED HERE
+
   const [searchTerm, setSearchTerm] = useState("")
   const [severityFilter, setSeverityFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
 
-  const auditResults = [
-    {
-      id: "SEC-001",
-      severity: "Critical",
-      category: "Configuration",
-      description: "SSH root login enabled on production server",
-      detectedOn: "2024-01-15",
-      suggestedFix: "Disable root SSH access and use sudo for administrative tasks",
-      system: "web-server-01.prod",
-    },
-    {
-      id: "SEC-002",
-      severity: "High",
-      category: "Patch Missing",
-      description: "OpenSSL version vulnerable to CVE-2023-4807",
-      detectedOn: "2024-01-15",
-      suggestedFix: "Update OpenSSL to version 3.0.12 or later",
-      system: "api-gateway.prod",
-    },
-    {
-      id: "SEC-003",
-      severity: "High",
-      category: "Permissions",
-      description: "World-writable files found in /var/www/",
-      detectedOn: "2024-01-14",
-      suggestedFix: "Set proper file permissions (644 for files, 755 for directories)",
-      system: "web-server-02.prod",
-    },
-    {
-      id: "SEC-004",
-      severity: "Medium",
-      category: "Configuration",
-      description: "Firewall allows unnecessary ports (8080, 9000)",
-      detectedOn: "2024-01-14",
-      suggestedFix: "Close unused ports and implement port-specific rules",
-      system: "load-balancer.prod",
-    },
-    {
-      id: "SEC-005",
-      severity: "Medium",
-      category: "Network",
-      description: "Unencrypted database connections detected",
-      detectedOn: "2024-01-13",
-      suggestedFix: "Enable SSL/TLS for all database connections",
-      system: "db-cluster-01.prod",
-    },
-    {
-      id: "SEC-006",
-      severity: "Low",
-      category: "Configuration",
-      description: "Default error pages reveal server information",
-      detectedOn: "2024-01-13",
-      suggestedFix: "Configure custom error pages without server details",
-      system: "web-server-01.prod",
-    },
-  ]
+  // --- REMOVED: const auditResults = [...]
 
   const getSeverityBadge = (severity: string) => {
     switch (severity) {

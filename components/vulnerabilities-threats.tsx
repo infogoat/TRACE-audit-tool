@@ -1,3 +1,5 @@
+// components/vulnerabilities-threats.tsx (MODIFIED)
+
 "use client"
 
 import { useState } from "react"
@@ -7,54 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Search, Calendar, AlertTriangle, Shield, Settings, Key } from "lucide-react"
-
-const vulnerabilities = [
-  {
-    id: "CVE-2024-001",
-    severity: "Critical",
-    category: "Configuration",
-    system: "Web Server",
-    description: "Unpatched Apache vulnerability allowing remote code execution",
-    dateDetected: "2024-01-15",
-    status: "Open",
-  },
-  {
-    id: "CVE-2024-002",
-    severity: "High",
-    category: "Patch",
-    system: "Database Server",
-    description: "MySQL privilege escalation vulnerability",
-    dateDetected: "2024-01-14",
-    status: "In Progress",
-  },
-  {
-    id: "CVE-2024-003",
-    severity: "Medium",
-    category: "Permissions",
-    system: "File Server",
-    description: "Excessive file permissions on sensitive directories",
-    dateDetected: "2024-01-13",
-    status: "Resolved",
-  },
-  {
-    id: "CVE-2024-004",
-    severity: "Low",
-    category: "Configuration",
-    system: "Mail Server",
-    description: "Weak SSL/TLS configuration detected",
-    dateDetected: "2024-01-12",
-    status: "Open",
-  },
-]
-
-const recentThreats = [
-  { name: "Brute Force Attack", severity: "High", time: "2 hours ago" },
-  { name: "Suspicious Login", severity: "Medium", time: "4 hours ago" },
-  { name: "Port Scan Detected", severity: "Low", time: "6 hours ago" },
-  { name: "Malware Signature", severity: "Critical", time: "8 hours ago" },
-]
+import { useDashboardData } from "@/hooks/use-api-data"
 
 export function VulnerabilitiesThreats() {
+  const { vulnerabilities, recentThreats } = useDashboardData() // <-- DATA FETCHED HERE
+
+  // --- REMOVED: const vulnerabilities = [...]
+  // --- REMOVED: const recentThreats = [...]
+
   const [severityFilter, setSeverityFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -264,7 +226,7 @@ export function VulnerabilitiesThreats() {
                     <p className="font-medium text-sm text-slate-800">{threat.name}</p>
                     <p className="text-xs text-slate-500">{threat.time}</p>
                   </div>
-                  <Badge className={getSeverityColor(threat.severity)} size="sm">
+                  <Badge className={getSeverityColor(threat.severity)}>
                     {threat.severity}
                   </Badge>
                 </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // <-- Added useEffect import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,48 +11,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Settings, Users, Shield, Plus, Edit, Trash2, Key, Bell, Globe } from "lucide-react"
+import { useDashboardData } from "@/hooks/use-api-data" // <-- Import hook
+import type { AppSettings } from "@/hooks/use-api-data" // <-- Import AppSettings type
 
-const users = [
-  {
-    id: 1,
-    username: "Tanisha Shrivaskar",
-    email: "Tanishashri@company.com",
-    role: "Admin",
-    status: "Active",
-    lastLogin: "2025-09-15 14:30",
-  },
-  {
-    id: 2,
-    username: "Ayushi Raina",
-    email: "ayushiraina02@company.com",
-    role: "Security Analyst",
-    status: "Active",
-    lastLogin: "2025-09-15 09:15",
-  },
-  {
-    id: 3,
-    username: "Aditi Pradhan",
-    email: "aditipradhan92@company.com",
-    role: "Auditor",
-    status: "Inactive",
-    lastLogin: "2025-09-10 16:45",
-  }
-]
+
+// Define a sensible default state to prevent runtime errors on first render
+const DEFAULT_SETTINGS: AppSettings = {
+    companyName: "",
+    timezone: "UTC-5",
+    emailNotifications: false,
+    slackNotifications: false,
+    smsNotifications: false,
+    twoFactorAuth: false,
+    passwordMinLength: 8,
+    passwordComplexity: false,
+    sessionTimeout: 30,
+};
+
 
 export function SettingsUserManagement() {
+  const { users, appSettings } = useDashboardData()
+
   const [activeTab, setActiveTab] = useState("general")
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
-  const [settings, setSettings] = useState({
-    companyName: "SecureCorpTech",
-    timezone: "UTC-5",
-    emailNotifications: true,
-    slackNotifications: false,
-    smsNotifications: true,
-    twoFactorAuth: true,
-    passwordMinLength: 12,
-    passwordComplexity: true,
-    sessionTimeout: 30,
-  })
+
+  // FIX: Initialize with a default object, then update when real data arrives
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
+
+  // Use useEffect to synchronize local state with fetched state
+  useEffect(() => {
+    // Only update the local state if the fetched data is available and different from the current local state default
+    if (appSettings) {
+        setSettings(appSettings)
+    }
+  }, [appSettings])
+  
+  // --- REMOVED: const users = [...] (Now fetched via hook)
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -73,6 +67,7 @@ export function SettingsUserManagement() {
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
+    // ⚠️ Add your backend script/API call here to save the setting
   }
 
   return (

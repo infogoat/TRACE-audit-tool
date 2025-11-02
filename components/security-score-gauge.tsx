@@ -1,10 +1,21 @@
+// components/security-score-gauge.tsx (MODIFIED)
+
 "use client"
 
+import { useDashboardData } from "@/hooks/use-api-data"
+
 export function SecurityScoreGauge() {
-  const score = 78
+  const { securityScore: score } = useDashboardData() // <-- DATA FETCHED HERE
+  
+  // --- REMOVED: const score = 78
+
   const circumference = 2 * Math.PI * 45
   const strokeDasharray = circumference
   const strokeDashoffset = circumference - (score / 100) * circumference
+
+  // Placeholder for status text based on score (adjust ranges as needed)
+  const status = score >= 80 ? "Excellent" : score >= 60 ? "Good" : "Needs Improvement"
+  const statusColor = score >= 80 ? "text-green-600" : score >= 60 ? "text-teal-600" : "text-red-600"
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -36,9 +47,9 @@ export function SecurityScoreGauge() {
       </div>
       <div className="mt-4 text-center">
         <div className="text-sm text-slate-600">
-          <span className="text-teal-600 font-medium">Good</span> security posture
+          <span className={`${statusColor} font-medium`}>{status}</span> security posture
         </div>
-        <div className="text-xs text-slate-500 mt-1">+5 points from last week</div>
+        <div className="text-xs text-slate-500 mt-1">Data from backend</div>
       </div>
     </div>
   )

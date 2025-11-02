@@ -1,8 +1,11 @@
 import { Search, Bell, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useDashboardData } from "@/hooks/use-api-data" // <-- Import hook
 
 export function Header() {
+  const { notificationCount } = useDashboardData() // <-- Use hook
+  
   return (
     <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -31,9 +34,12 @@ export function Header() {
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="w-5 h-5 text-slate-600" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              3
-            </span>
+            {/* Display count only if greater than 0 */}
+            {notificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {notificationCount}
+              </span>
+            )}
           </Button>
 
           <Button variant="ghost" size="sm" className="flex items-center space-x-2">

@@ -1,16 +1,22 @@
 "use client"
 
+import { useDashboardData } from "@/hooks/use-api-data"
+
 export function IssueDistributionChart() {
-  const data = [
-    { category: "Configuration", count: 35, color: "#ef4444" },
-    { category: "Patch Missing", count: 28, color: "#f97316" },
-    { category: "Permissions", count: 18, color: "#eab308" },
-    { category: "Network", count: 12, color: "#3b82f6" },
-    { category: "Other", count: 7, color: "#6b7280" },
-  ]
+  const { issueDistributionData: data } = useDashboardData() // <-- DATA FETCHED HERE
+
+  // --- REMOVED: const data = [...]
 
   const total = data.reduce((sum, item) => sum + item.count, 0)
   let cumulativePercentage = 0
+
+  if (total === 0) {
+     return (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-96 flex items-center justify-center">
+            <p className="text-slate-500">No issue distribution data available.</p>
+        </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

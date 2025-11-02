@@ -1,24 +1,37 @@
+// components/security-trend-chart.tsx (MODIFIED)
+
 "use client"
 
-export function SecurityTrendChart() {
-  const data = [
-    { month: "Jan", score: 65 },
-    { month: "Feb", score: 68 },
-    { month: "Mar", score: 72 },
-    { month: "Apr", score: 70 },
-    { month: "May", score: 75 },
-    { month: "Jun", score: 78 },
-  ]
+import { useDashboardData } from "@/hooks/use-api-data"
 
+export function SecurityTrendChart() {
+  const { securityTrendData: data } = useDashboardData() // <-- DATA FETCHED HERE
+
+  // --- REMOVED: const data = [...]
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-96 flex items-center justify-center">
+        <p className="text-slate-500">No security trend data available.</p>
+      </div>
+    )
+  }
+  
   const maxScore = Math.max(...data.map((d) => d.score))
   const minScore = Math.min(...data.map((d) => d.score))
-
+  // Safety check to prevent division by zero if all scores are the same
+  const range = maxScore - minScore === 0 ? maxScore : maxScore - minScore
+  
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
       <h3 className="text-lg font-semibold text-slate-800 mb-4">Security Score Trend</h3>
       <div className="h-64 flex items-end justify-between space-x-2">
         {data.map((item, index) => {
-          const height = ((item.score - minScore) / (maxScore - minScore)) * 200 + 40
+          // Calculate height based on score relative to min/max. Scale to a display range (e.g., 40px to 240px)
+          const height = range === 0 
+            ? 120 // Set a fixed height if scores are identical
+            : ((item.score - minScore) / range) * 200 + 40
+            
           return (
             <div key={item.month} className="flex-1 flex flex-col items-center">
               <div className="w-full flex flex-col items-center">
