@@ -5,9 +5,17 @@
 import { useDashboardData } from "@/hooks/use-api-data"
 
 export function SecurityTrendChart() {
-  const { securityTrendData: data } = useDashboardData() // <-- DATA FETCHED HERE
+  const { securityTrendData } = useDashboardData()
 
-  // --- REMOVED: const data = [...]
+  const data = securityTrendData ?? []
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-96 flex items-center justify-center">
+        <p className="text-slate-500">No security trend data available.</p>
+      </div>
+    )
+  }
 
   if (data.length === 0) {
     return (

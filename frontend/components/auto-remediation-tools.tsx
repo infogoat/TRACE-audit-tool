@@ -1,5 +1,3 @@
-// components/auto-remediation-tools.tsx (MODIFIED)
-
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -16,30 +14,28 @@ import {
 } from "lucide-react"
 import { useDashboardData } from "@/hooks/use-api-data"
 
-// Icons and Tool structures are now imported as part of the RemediationTool[] type (icon: any)
-// The original component used: Package, Shield, Key, Settings, Database, Server
-
 export function AutoRemediationTools() {
-  const { remediationTools, remediationHistory } = useDashboardData() // <-- DATA FETCHED HERE
+  const { remediationTools, remediationHistory } = useDashboardData()
 
-  // --- REMOVED: const remediationTools = [...]
-  // --- REMOVED: const remediationHistory = [...]
+  // ✅ SAFE ARRAYS (MOST IMPORTANT FIX)
+  const tools = remediationTools ?? []
+  const history = remediationHistory ?? []
 
   const [runningTools, setRunningTools] = useState<number[]>([])
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // ✅ SAFE useEffect
   useEffect(() => {
-    // If tools are fetched and some are marked 'running' in the data, initialize the state
-    const initialRunning = remediationTools.filter(t => t.status === "running").map(t => t.id)
+    const initialRunning = tools
+      .filter((t) => t.status === "running")
+      .map((t) => t.id)
+
     setRunningTools(initialRunning)
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [remediationTools])
-
+  }, [tools])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -69,138 +65,103 @@ export function AutoRemediationTools() {
 
   const handleRunTool = (toolId: number) => {
     setRunningTools((prev) => [...prev, toolId])
-    // Simulate tool completion after 3 seconds
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+
     timeoutRef.current = setTimeout(() => {
       setRunningTools((prev) => prev.filter((id) => id !== toolId))
-      // ⚠️ Add your backend call here to start the script and update status
     }, 3000)
+  }
+
+  // ✅ EMPTY STATE (NO CRASH)
+  if (tools.length === 0) {
+    return (
+      <div className="p-6 text-slate-500">
+        No auto-remediation tools available yet.
+      </div>
+    )
   }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Auto-Remediation Tools</h1>
-          <p className="text-slate-600 mt-2">
-            Automated tools that fix common security issues and maintain system hardening
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800">
+          Auto-Remediation Tools
+        </h1>
+        <p className="text-slate-600 mt-2">
+          Automated tools that fix common security issues
+        </p>
       </div>
 
-      {/* Tools Grid */}
+      {/* TOOLS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {remediationTools.map((tool) => {
+        {tools.map((tool) => {
           const IconComponent = tool.icon
           const isRunning = runningTools.includes(tool.id)
 
           return (
-            <Card key={tool.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-teal-100 rounded-lg">
-                      {/* You must ensure the Icon property is the actual Lucide component from the backend/script response */}
-                      {IconComponent && <IconComponent className="h-6 w-6 text-teal-600" />}
-                    </div>
-                    <div className="flex items-center gap-2">{getStatusIcon(isRunning ? "running" : tool.status)}</div>
+            <Card key={tool.id}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-teal-100 rounded-lg">
+                    {IconComponent && (
+                      <IconComponent className="h-6 w-6 text-teal-600" />
+                    )}
                   </div>
+                  {getStatusIcon(isRunning ? "running" : tool.status)}
                 </div>
-                <CardTitle className="text-lg">{tool.name}</CardTitle>
+                <CardTitle>{tool.name}</CardTitle>
                 <p className="text-sm text-slate-600">{tool.description}</p>
               </CardHeader>
+
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Category:</span>
-                  <Badge variant="outline">{tool.category}</Badge>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Last Run:</span>
-                  <span className="text-slate-700">{tool.lastRun}</span>
-                </div>
+                <Badge variant="outline">{tool.category}</Badge>
 
                 {isRunning && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500">Progress:</span>
-                      <span className="text-slate-700">Running...</span>
-                    </div>
-                    {/* Placeholder Progress value */}
-                    <Progress value={65} className="h-2" /> 
-                  </div>
+                  <>
+                    <Progress value={65} />
+                    <span className="text-sm text-slate-600">Running…</span>
+                  </>
                 )}
 
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    className="flex-1 bg-teal-600 hover:bg-teal-700"
-                    disabled={isRunning}
-                    onClick={() => handleRunTool(tool.id)}
-                  >
-                    {isRunning ? (
-                      <>
-                        <Clock className="h-4 w-4 mr-2" />
-                        Running...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4 mr-2" />
-                        Run Now
-                      </>
-                    )}
-                  </Button>
-                  <Button variant="outline" className="flex-1 bg-transparent">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule
-                  </Button>
-                </div>
+                <Button
+                  disabled={isRunning}
+                  onClick={() => handleRunTool(tool.id)}
+                >
+                  {isRunning ? "Running…" : "Run Now"}
+                </Button>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      {/* Remediation History */}
+      {/* HISTORY */}
       <Card>
         <CardHeader>
           <CardTitle>Remediation History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {history.length === 0 ? (
+            <p className="text-slate-500">No history available.</p>
+          ) : (
             <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium text-slate-600">Tool Name</th>
-                  <th className="text-left p-3 font-medium text-slate-600">Date Run</th>
-                  <th className="text-left p-3 font-medium text-slate-600">Issues Fixed</th>
-                  <th className="text-left p-3 font-medium text-slate-600">Duration</th>
-                  <th className="text-left p-3 font-medium text-slate-600">Status</th>
-                </tr>
-              </thead>
               <tbody>
-                {remediationHistory.map((record, index) => (
-                  <tr key={index} className={index % 2 === 0 ? "bg-slate-50" : "bg-white"}>
-                    <td className="p-3 font-medium text-slate-800">{record.toolName}</td>
-                    <td className="p-3 text-sm text-slate-600">{record.dateRun}</td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{record.issuesFixed}</span>
-                        {record.status === "Success" && record.issuesFixed > 0 && (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        )}
-                        {record.status === "Failed" && <XCircle className="h-4 w-4 text-red-500" />}
-                      </div>
-                    </td>
-                    <td className="p-3 text-sm text-slate-600">{record.duration}</td>
-                    <td className="p-3">
-                      <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
+                {history.map((record, index) => (
+                  <tr key={index}>
+                    <td>{record.toolName}</td>
+                    <td>{record.dateRun}</td>
+                    <td>{record.issuesFixed}</td>
+                    <td>
+                      <Badge className={getStatusColor(record.status)}>
+                        {record.status}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

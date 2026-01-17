@@ -1,4 +1,5 @@
 // components/dashboard-overview.tsx 
+"use client"
 
 import { SecurityScoreGauge } from "@/components/security-score-gauge"
 import { VulnerabilityCards } from "@/components/vulnerability-cards"

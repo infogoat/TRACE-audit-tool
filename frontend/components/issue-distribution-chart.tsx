@@ -3,11 +3,20 @@
 import { useDashboardData } from "@/hooks/use-api-data"
 
 export function IssueDistributionChart() {
-  const { issueDistributionData: data } = useDashboardData() // <-- DATA FETCHED HERE
+  const { issueDistributionData } = useDashboardData()
 
-  // --- REMOVED: const data = [...]
+  const data = issueDistributionData ?? []
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-96 flex items-center justify-center">
+        <p className="text-slate-500">No issue distribution data available.</p>
+      </div>
+    )
+  }
 
   const total = data.reduce((sum, item) => sum + item.count, 0)
+
   let cumulativePercentage = 0
 
   if (total === 0) {
