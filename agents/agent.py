@@ -10,8 +10,8 @@ import sys
 
 # --- Configuration ---
 # NOTE: Update the BACKEND_URL to your actual server address.
-BACKEND_URL = "http://your-backend:8000/api/upload"
-OUT_DIR = "./outputs"
+BACKEND_URL = "http://localhost:8000/api/upload"
+OUT_DIR = "windows-audit-cis-main/outputs"
 REPORT_FILE = os.path.join(OUT_DIR, "report.json")
 
 def load_report():
@@ -33,13 +33,12 @@ def run_linux_scanner():
     try:
         # The run.sh script is assumed to create the report.json in OUT_DIR
         # check=True will raise an error if the script fails (non-zero exit code)
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,cwd="windows-audit-cis-main")
+
         return load_report()
     except subprocess.CalledProcessError as e:
         print(f"Linux scanner failed with exit code {e.returncode}.")
-        print(f"Scanner outputs
-    :\n{e.outputs
-    .decode()}")
+        print("Scanner outputs:\n",e.output.decode())
     except FileNotFoundError:
         print("Error: Could not find 'bash' or 'CIS-Ubuntu-20.04-develop/run.sh'. Check your setup.")
     return None
@@ -48,16 +47,14 @@ def run_windows_scanner():
     """Executes the Windows CIS scanner."""
     # Pass the full path to the outputs
     # file via the --json argument
-    cmd = ["python", "windows-audit-cis-main/main.py", "--json", REPORT_FILE]
+    cmd = ["python", "main.py", "--json", REPORT_FILE]
     print(f"Running Windows CIS scanner: {' '.join(cmd)}")
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,cwd="windows-audit-cis-main")
         return load_report()
     except subprocess.CalledProcessError as e:
         print(f"Windows scanner failed with exit code {e.returncode}.")
-        print(f"Scanner outputs
-    :\n{e.outputs
-    .decode()}")
+        print("Scanner outputs:\n",e.output.decode())
     except FileNotFoundError:
         print("Error: Could not find 'python' or 'windows-audit-cis-main/main.py'. Check your setup.")
     return None
@@ -73,8 +70,7 @@ def main():
     if not os.path.exists(OUT_DIR):
         try:
             os.makedirs(OUT_DIR)
-            print(f"Created outputs
-         directory: {OUT_DIR}")
+            print(f"Created outputs directory: {OUT_DIR}")
         except OSError as e:
             print(f"Error creating directory {OUT_DIR}: {e}")
             sys.exit(1)
