@@ -184,6 +184,42 @@ def upload_scan():
         "passed": passed,
         "failed": failed
     }), 200
+    
+# ---------------- RESULTS FOR FRONTEND ----------------
+@app.route("/api/results", methods=["GET"])
+def get_results():
+    db = SessionLocal()
+
+    scans = (
+        db.query(
+            Agent.name,
+            Agent.os_name,
+            ScanResult.benchmark_name,
+            ScanResult.score_percent,
+            ScanResult.passed_count,
+            ScanResult.failed_count,
+            ScanResult.scan_time
+        )
+        .join(Agent, Agent.id == ScanResult.agent_id)
+        .order_by(ScanResult.scan_time.desc())
+        .all()
+    )
+
+    response = []
+    for s in scans:
+        response.append({
+            "hostname": s.name,
+            "os": s.os_name,
+            "benchmark": s.benchmark_name,
+            "score": s.score_percent,
+            "passed": s.passed_count,
+            "failed": s.failed_count,
+            "scan_time": s.scan_time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+    db.close()
+    return jsonify(response)
+
 
 
 # ---------------- MAIN ----------------
