@@ -56,7 +56,7 @@ export function useDashboardData(): DashboardData {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch("http://localhost:8000/api/results")
+        const res = await fetch("http://localhost:8000/api/dashboard/overview")
         const backend = await res.json()
 
         const auditResults: AuditResult[] = backend.auditResults ?? []
@@ -77,11 +77,11 @@ export function useDashboardData(): DashboardData {
         if (isNaN(score)) score = 100 // last fallback
 
         setData({
-          auditResults,
-          vulnerabilities,
-          securityScore: score,
+          auditResults: [],
+          vulnerabilities: [],
+          securityScore: backend.securityScore ?? 100,
           lastUpdated: new Date().toLocaleString(),
-          notificationCount: totalIssues,
+          notificationCount: backend.totalIssues ?? 0,
         })
 
       } catch (error) {
