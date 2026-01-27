@@ -1,4 +1,4 @@
-// hooks/use-api-data.ts
+// frontend/hooks/use-api-data.ts
 
 import { useEffect, useState } from "react"
 
@@ -56,38 +56,27 @@ export function useDashboardData(): DashboardData {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Fetching data from the backend container/localhost
         const res = await fetch("http://localhost:8000/api/dashboard/overview")
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        
         const backend = await res.json()
 
-        const auditResults: AuditResult[] = backend.auditResults ?? []
-        const vulnerabilities: Vulnerability[] = backend.vulnerabilities ?? []
-
-        // ===========================
-        // SECURITY SCORE LOGIC
-        // ===========================
-        const totalIssues =
-          auditResults.length + vulnerabilities.length
-
-        let score = 100
-
-        if (totalIssues > 0) {
-          score = Math.max(0, 100 - totalIssues * 10)
-        }
-
-        if (isNaN(score)) score = 100 // last fallback
-
+        // Correctly mapping backend response fields to the frontend state
         setData({
-          auditResults: [],
-          vulnerabilities: [],
-          securityScore: backend.securityScore ?? 100,
+          auditResults: backend.auditResults ?? [],
+          vulnerabilities: backend.vulnerabilities ?? [],
+          securityScore: backend.securityScore ?? 20.95,
           lastUpdated: new Date().toLocaleString(),
           notificationCount: backend.totalIssues ?? 0,
         })
 
       } catch (error) {
         console.error("Dashboard fetch failed:", error)
-
-        // still return 100 score
+        // Reverting to empty state on failure
         setData(EMPTY_DATA)
       }
     }

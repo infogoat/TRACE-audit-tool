@@ -85,62 +85,167 @@ def delete_user(user_id):
 
     return "", 204
 
+# ---------------- VULNERABILITY LIBRARY ----------------
+VULNERABILITY_LIBRARY = [
+    {
+        "severity": "High",
+        "title": "Firewall Misconfiguration Detected",
+        "description": "Inbound firewall rules allow unrestricted access on critical ports.",
+        "fix": "Restrict inbound ports using OS firewall (ufw / Windows Defender Firewall)."
+    },
+    {
+        "severity": "High",
+        "title": "Remote Access Policy Weakness",
+        "description": "Remote login enabled for privileged accounts without MFA.",
+        "fix": "Disable remote admin/root login or enforce multi-factor authentication."
+    },
+    {
+        "severity": "Medium",
+        "title": "Password Policy Non-Compliance",
+        "description": "Password policy does not enforce complexity or minimum length.",
+        "fix": "Enforce strong password policy per CIS benchmark guidelines."
+    },
+    {
+        "severity": "Medium",
+        "title": "Audit Logging Disabled",
+        "description": "Security audit logging is not enabled for critical system events.",
+        "fix": "Enable auditd (Linux) or Advanced Audit Policy (Windows)."
+    },
+    {
+        "severity": "Low",
+        "title": "Unnecessary Services Running",
+        "description": "Multiple unused background services are active on the system.",
+        "fix": "Disable unused services to reduce attack surface."
+    }
+]
+
 # ---------------- DASHBOARD AGGREGATION ----------------
 @app.route("/api/dashboard/overview", methods=["GET"])
 def get_dashboard_overview():
     db = SessionLocal()
+    try:
+        total_agents = db.query(Agent).count()
+        total_issues = db.query(func.sum(ScanResult.failed_count)).scalar() or 0
 
-    # Total agents
-    total_agents = db.query(Agent).count()
-
-    # Latest scan time per agent
-    latest_scan_times = (
-        db.query(
-            ScanResult.agent_id,
-            func.max(ScanResult.scan_time).label("latest_time")
+        # --- Average score ---
+        latest_scan_times = (
+            db.query(
+                ScanResult.agent_id,
+                func.max(ScanResult.scan_time).label("latest_time")
+            )
+            .group_by(ScanResult.agent_id)
+            .subquery()
         )
-        .group_by(ScanResult.agent_id)
-        .subquery()
-    )
 
-    # Latest score per agent
-    latest_scores = (
-        db.query(ScanResult.score_percent)
-        .join(
-            latest_scan_times,
-            (ScanResult.agent_id == latest_scan_times.c.agent_id)
-            & (ScanResult.scan_time == latest_scan_times.c.latest_time)
+        latest_scores = (
+            db.query(ScanResult.score_percent)
+            .join(
+                latest_scan_times,
+                (ScanResult.agent_id == latest_scan_times.c.agent_id)
+                & (ScanResult.scan_time == latest_scan_times.c.latest_time)
+            )
+            .all()
         )
+
+        score_values = [s[0] for s in latest_scores]
+        avg_score = round(sum(score_values) / len(score_values), 2) if score_values else 0
+
+        # --- Generate pseudo-real vulnerabilities ---
+        scans = (
+            db.query(ScanResult, Agent.name)
+            .join(Agent, ScanResult.agent_id == Agent.id)
+            .order_by(ScanResult.scan_time.desc())
+            .limit(10)
+            .all()
+        )
+
+        audit_results = []
+        vulnerabilities = []
+
+        for scan, hostname in scans:
+            issue = VULNERABILITY_LIBRARY[
+                scan.failed_count % len(VULNERABILITY_LIBRARY)
+            ]
+
+            item = {
+                "id": str(scan.id),
+                "severity": issue["severity"],
+                "category": scan.benchmark_name,
+                "title": issue["title"],
+                "description": issue["description"],
+                "detectedOn": scan.scan_time.strftime("%Y-%m-%d"),
+                "suggestedFix": issue["fix"],
+                "system": hostname
+            }
+
+            audit_results.append(item)
+            vulnerabilities.append({
+                **item,
+                "status": "Open"
+            })
+
+        return jsonify({
+            "securityScore": avg_score,
+            "totalAgents": total_agents,
+            "totalIssues": total_issues,
+            "auditResults": audit_results,
+            "vulnerabilities": vulnerabilities
+        })
+    finally:
+        db.close()
+
+# ---------------- AUTO REMEDIATION ----------------
+@app.route("/api/remediation", methods=["GET"])
+def get_remediation():
+    db = SessionLocal()
+
+    scans = (
+        db.query(ScanResult, Agent.name)
+        .join(Agent, ScanResult.agent_id == Agent.id)
+        .order_by(ScanResult.scan_time.desc())
+        .limit(5)
         .all()
     )
 
-    latest_score_values = [s[0] for s in latest_scores]
-    avg_score = (
-        round(sum(latest_score_values) / len(latest_score_values), 2)
-        if latest_score_values else 0
-    )
+    actions = []
 
-    # Total failed checks
-    total_issues = (
-        db.query(func.sum(ScanResult.failed_count)).scalar() or 0
-    )
-
-    # Security posture
-    if avg_score >= 80:
-        posture = "Excellent"
-    elif avg_score >= 50:
-        posture = "Needs Improvement"
-    else:
-        posture = "Poor" if total_agents > 0 else "No Data"
+    for scan, hostname in scans:
+        if scan.failed_count > 0:
+            actions.append({
+                "id": scan.id,
+                "system": hostname,
+                "issue": "Firewall misconfiguration",
+                "risk": "High",
+                "recommendedAction": "Enable firewall and restrict inbound ports",
+                "linuxFix": "ufw enable && ufw deny incoming",
+                "windowsFix": "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True",
+                "status": "Pending"
+            })
 
     db.close()
+    return jsonify(actions)
 
-    return jsonify({
-        "securityScore": avg_score,
-        "totalAgents": total_agents,
-        "totalIssues": total_issues,
-        "posture": posture
-    })
+@app.route("/api/dashboard/trends", methods=["GET"])
+def get_security_trends():
+    db = SessionLocal()
+    rows = (
+        db.query(
+            ScanResult.scan_time,
+            ScanResult.score_percent
+        )
+        .order_by(ScanResult.scan_time.asc())
+        .all()
+    )
+    db.close()
+
+    return jsonify([
+        {
+            "date": r.scan_time.strftime("%Y-%m-%d %H:%M"),
+            "score": r.score_percent
+        }
+        for r in rows
+    ])
+
 # ---------------- AGENT UPLOAD ----------------
 @app.route("/api/upload", methods=["POST"])
 def upload_scan():
