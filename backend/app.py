@@ -3,12 +3,76 @@ from flask_cors import CORS
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-from database_models import Base, Agent, ScanResult, CheckDetail, User
+from database_models import Base, Agent, ScanResult, CheckDetail, User, System
 import os
+import secrets
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # ---------------- APP SETUP ----------------
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/api/auth/check-system", methods=["POST"])
+def check_system():
+    data = request.json
+    db = SessionLocal()
+
+    system = db.query(Agent).filter(
+        Agent.name == data["system_name"]
+    ).first()
+
+    db.close()
+
+    if system:
+        return jsonify({"status": "existing"})
+    else:
+        return jsonify({"status": "new"})
+
+# ---------------- REGISTER SYSTEM ------------------
+@app.route("/api/systems/register", methods=["POST"])
+def register_system():
+    data = request.json
+    db = SessionLocal()
+
+    existing = db.query(System).filter(
+        System.system_name == data["system_name"]
+    ).first()
+
+    if existing:
+        db.close()
+        return jsonify({"message": "System already exists"})
+
+    system = System(
+        system_name=data["system_name"],
+        os_name=data["os_name"],
+        ip_address=data.get("ip_address", "simulated")
+    )
+
+    db.add(system)
+    db.commit()
+    db.close()
+
+    return jsonify({"message": "System registered"})
+
+
+# --------------- LOGIN SYSTEM ------------------
+@app.route("/api/auth/login-system", methods=["POST"])
+def login_system():
+    data = request.json
+    db = SessionLocal()
+
+    system = db.query(Agent).filter(
+        Agent.name == data["system_name"]
+    ).first()
+
+    if not system or not check_password_hash(
+        system.password_hash, data["password"]
+    ):
+        db.close()
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    db.close()
+    return jsonify({"login": "success"})
 
 # ---------------- DATABASE SETUP ----------------
 DATABASE_URL = os.getenv(
@@ -50,6 +114,55 @@ def get_users():
 
     db.close()
     return jsonify(resp)
+
+# --------------------- REGISTER USERS ---------------------
+import secrets
+
+@app.route("/api/agents/register", methods=["POST"])
+def register_agent():
+    db = SessionLocal()
+    data = request.json
+
+    user_id = data["user_id"]
+    hostname = data["hostname"]
+    os_name = data["os"]
+
+    # CHECK IF AGENT ALREADY EXISTS
+    existing = (
+        db.query(Agent)
+        .filter(
+            Agent.user_id == user_id,
+            Agent.name == hostname
+        )
+        .first()
+    )
+
+    if existing:
+        db.close()
+        return jsonify({
+            "agent_id": existing.id,
+            "agent_token": existing.agent_token
+        })
+
+    agent_token = secrets.token_hex(32)
+
+    agent = Agent(
+        name=hostname,
+        os_name=os_name,
+        user_id=user_id,
+        agent_token=agent_token
+    )
+
+    db.add(agent)
+    db.commit()
+    db.refresh(agent)
+    db.close()
+
+    return jsonify({
+        "agent_id": agent.id,
+        "agent_token": agent_token
+    })
+
 
 @app.route("/api/users", methods=["POST"])
 def create_user():
@@ -127,7 +240,7 @@ def get_dashboard_overview():
         total_agents = db.query(Agent).count()
         total_issues = db.query(func.sum(ScanResult.failed_count)).scalar() or 0
 
-        # --- Average score ---
+        # Latest score per agent
         latest_scan_times = (
             db.query(
                 ScanResult.agent_id,
@@ -150,7 +263,6 @@ def get_dashboard_overview():
         score_values = [s[0] for s in latest_scores]
         avg_score = round(sum(score_values) / len(score_values), 2) if score_values else 0
 
-        # --- Generate pseudo-real vulnerabilities ---
         scans = (
             db.query(ScanResult, Agent.name)
             .join(Agent, ScanResult.agent_id == Agent.id)
@@ -162,39 +274,32 @@ def get_dashboard_overview():
         audit_results = []
         vulnerabilities = []
 
-        for scan, hostname in scans:
-            issue = VULNERABILITY_LIBRARY[
-                scan.failed_count % len(VULNERABILITY_LIBRARY)
-            ]
+        for scan in latest_scan_times:
+            hostname = scan.agent.name
 
-            item = {
-                "id": str(scan.id),
-                "severity": issue["severity"],
+        if scan.failed_count > 0:
+            audit_results.append({
+                "id": f"{scan.agent_id}-{scan.id}",
+                "severity": "High",
                 "category": scan.benchmark_name,
-                "title": issue["title"],
-                "description": issue["description"],
-                "detectedOn": scan.scan_time.strftime("%Y-%m-%d"),
-                "suggestedFix": issue["fix"],
+                "description": f"{scan.failed_count} checks failed",
                 "system": hostname
-            }
-
-            audit_results.append(item)
-            vulnerabilities.append({
-                **item,
-                "status": "Open"
             })
 
-        return jsonify({
-            "securityScore": avg_score,
-            "totalAgents": total_agents,
-            "totalIssues": total_issues,
-            "auditResults": audit_results,
-            "vulnerabilities": vulnerabilities
+        vulnerabilities.append({
+            "id": f"{scan.agent_id}-{scan.id}",
+            "severity": "High" if scan.failed_count > 3 else "Medium",
+            "title": "System Hardening Issue",
+            "status": "Open",
+            "system": hostname
         })
+
+
     finally:
         db.close()
 
 # ---------------- AUTO REMEDIATION ----------------
+
 @app.route("/api/remediation", methods=["GET"])
 def get_remediation():
     db = SessionLocal()
@@ -214,12 +319,12 @@ def get_remediation():
             actions.append({
                 "id": scan.id,
                 "system": hostname,
-                "issue": "Firewall misconfiguration",
+                "issue": scan.benchmark_name,
                 "risk": "High",
-                "recommendedAction": "Enable firewall and restrict inbound ports",
-                "linuxFix": "ufw enable && ufw deny incoming",
-                "windowsFix": "Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True",
-                "status": "Pending"
+                "recommendedAction": "Apply CIS benchmark hardening",
+                "linuxFix": "sudo ufw enable && sudo systemctl restart auditd",
+                "windowsFix": "Enable Windows Defender Firewall & Audit Policy",
+                "status": "Suggested"
             })
 
     db.close()
@@ -249,28 +354,46 @@ def get_security_trends():
 # ---------------- AGENT UPLOAD ----------------
 @app.route("/api/upload", methods=["POST"])
 def upload_scan():
-    data = request.json
+    print(">>> /api/upload HIT")   
+    # 1. Extract & validate token
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    token = auth.split(" ")[1]
+
     db = SessionLocal()
 
-    hostname = data.get("hostname")
-    os_name = data.get("os")
-    results = data.get("results", {})
+    # 2. Identify agent using token
+    agent = db.query(Agent).filter(Agent.agent_token == token).first()
+    if not agent:
+        db.close()
+        return jsonify({"error": "Invalid agent token"}), 403
 
-    # Create agent
-    agent = Agent(
-        name=hostname,
-        os_name=os_name
-    )
-    db.add(agent)
-    db.commit()
-    db.refresh(agent)
+    # 3. Read scan results
+    data = request.json
+    results = data.get("results", {})
 
     checks = results.get("checks", [])
     total_checks = len(checks)
     failed = sum(1 for c in checks if c.get("status") == "fail")
     passed = total_checks - failed
     score = round((passed / total_checks) * 100, 2) if total_checks else 0
+    
+    # FORCE LOGICAL FAILURE FOR WEAK PASSWORD POLICY (WINDOWS)
+    if agent.os_name.lower() == "windows":
+        try:
+            import subprocess
+            output = subprocess.check_output("net accounts", shell=True).decode()
+            if "Minimum password length" in output:
+                value = int(output.split("Minimum password length")[1].split()[0])
+                if value == 0:
+                    failed += 1
+        except:
+            pass
 
+
+    # 4. Create scan result (agent already known)
     scan = ScanResult(
         agent_id=agent.id,
         benchmark_name=results.get("benchmark", "CIS"),
@@ -279,16 +402,22 @@ def upload_scan():
         failed_count=failed,
         scan_time=datetime.utcnow()
     )
-    db.add(scan)
+
+    agent_name = agent.name  # capture before close
+
+    db.add(scan)      # SINGLE ORM OBJECT
     db.commit()
     db.close()
 
+
     return jsonify({
         "message": "Scan uploaded successfully",
+        "agent": agent_name,
         "score": score,
         "passed": passed,
         "failed": failed
-    }), 200
+}), 200
+
     
 # ---------------- RESULTS FOR FRONTEND ----------------
 @app.route("/api/results", methods=["GET"])

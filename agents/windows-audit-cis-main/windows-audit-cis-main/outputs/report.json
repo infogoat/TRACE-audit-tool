@@ -3,7 +3,7 @@
   "passed": 223,
   "failed": 920,
   "score_percent": 20,
-  "scan_time": "2026-01-24T23:53:29.325132",
+  "scan_time": "2026-01-29T16:58:18.940444",
   "host": "MyHost",
   "os": "Windows 11",
   "checks": [

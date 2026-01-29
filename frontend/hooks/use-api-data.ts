@@ -11,8 +11,6 @@ export interface AuditResult {
   severity: "Critical" | "High" | "Medium" | "Low"
   category: string
   description: string
-  detectedOn: string
-  suggestedFix: string
   system: string
 }
 

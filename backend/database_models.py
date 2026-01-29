@@ -5,14 +5,26 @@ from datetime import datetime
 Base = declarative_base()
 
 # ---------------- AGENT ----------------
+
 class Agent(Base):
     __tablename__ = "agents"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(128), nullable=False)
-    os_name = Column(String(64), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
 
-    scan_results = relationship("ScanResult", back_populates="agent", cascade="all, delete-orphan")
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(128), unique=True, nullable=False)  # system name
+    os_name = Column(String(64))
+    password_hash = Column(String(256))
+    ip_address = Column(String(64), nullable=True)
+    # agent_token = Column(String(128), unique=True, nullable=True)
+
+    # user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime)
+
+    # user = relationship("User", back_populates="agents")
+    scan_results = relationship(
+        "ScanResult",
+        back_populates="agent",
+        cascade="all, delete-orphan"
+    )
 
 
 # ---------------- SCAN RESULT ----------------
@@ -47,9 +59,16 @@ class CheckDetail(Base):
 # ---------------- USER ----------------
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(128), unique=True, nullable=False)
     email = Column(String(256))
     role = Column(String(64), default="Admin")
     status = Column(String(32), default="Active")
     last_login = Column(DateTime, default=datetime.utcnow)
+
+    agents = relationship(
+        "Agent",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )

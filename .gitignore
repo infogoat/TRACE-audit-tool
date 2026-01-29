@@ -1,0 +1,16 @@
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+.next/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Database
+trace.db
+
+# OS junk
+.DS_Store
+Thumbs.db

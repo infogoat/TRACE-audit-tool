@@ -1,10 +1,29 @@
+import { useEffect, useState } from "react"
 import { Search, Bell, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDashboardData } from "@/hooks/use-api-data" // <-- Import hook
 
+
 export function Header() {
   const { notificationCount } = useDashboardData() // <-- Use hook
+  const [systemName, setSystemName] = useState("")
+
+  const [open, setOpen] = useState(false)
+
+
+  useEffect(() => {
+    const name = localStorage.getItem("system")
+    if (name) setSystemName(name)
+  }, [])
+
+  const logout = () => {
+    localStorage.removeItem("authenticated")
+    localStorage.removeItem("system")
+    window.location.reload()
+  }
+  
+
   
   return (
     <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
@@ -42,12 +61,34 @@ export function Header() {
             )}
           </Button>
 
-          <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+          <div className="relative">
+          <Button variant="ghost" size="sm" className="flex items-center space-x-2" onClick={() => setOpen(!open)}>
             <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center">
               <User className="w-4 h-4 text-slate-600" />
             </div>
-            <span className="text-sm text-slate-700">Admin</span>
+
+            <span className="text-sm text-slate-700">
+              {systemName || "Admin"}
+            </span>
+
+            <span className="text-xs">▼</span>
           </Button>
+
+          {open && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-md z-50">
+              <div className="px-4 py-2 text-sm text-slate-500 border-b">
+                Logged in as
+                <div className="font-semibold text-slate-800">
+                  {systemName}
+                </div>
+              </div>
+
+              <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100" onClick={logout}>
+                Logout
+              </button>
+            </div>
+          )}    
+        </div>
         </div>
       </div>
     </header>
