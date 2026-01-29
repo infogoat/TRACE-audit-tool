@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
+from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
@@ -25,6 +26,18 @@ class Agent(Base):
         back_populates="agent",
         cascade="all, delete-orphan"
     )
+    
+
+class System(Base):
+    __tablename__ = "systems"
+
+    id = Column(Integer, primary_key=True)
+    system_name = Column(String(128))
+    os_name = Column(String(64))
+    ip_address = Column(String(64))
+    created_at = Column(DateTime)
+    # last_seen = Column(DateTime, default=datetime.utcnow)
+    # status = Column(String(32), default="Healthy")
 
 
 # ---------------- SCAN RESULT ----------------
@@ -61,14 +74,13 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(128), unique=True, nullable=False)
-    email = Column(String(256))
-    role = Column(String(64), default="Admin")
-    status = Column(String(32), default="Active")
-    last_login = Column(DateTime, default=datetime.utcnow)
+    system_name = Column(String(128), unique=True, nullable=False)
+    password_hash = Column(String(256))
+    created_at = Column(DateTime)
 
-    agents = relationship(
-        "Agent",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
+
+    # agents = relationship(
+    #     "Agent",
+    #     back_populates="user",
+    #     cascade="all, delete-orphan"
+    # )

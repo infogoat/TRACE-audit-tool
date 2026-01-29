@@ -34,18 +34,10 @@ def register_system():
     data = request.json
     db = SessionLocal()
 
-    existing = db.query(System).filter(
-        System.system_name == data["system_name"]
-    ).first()
-
-    if existing:
-        db.close()
-        return jsonify({"message": "System already exists"})
-
     system = System(
         system_name=data["system_name"],
         os_name=data["os_name"],
-        ip_address=data.get("ip_address", "simulated")
+        ip_address=data["ip_address"]
     )
 
     db.add(system)
@@ -53,6 +45,24 @@ def register_system():
     db.close()
 
     return jsonify({"message": "System registered"})
+
+# --------------- GET SYSTEMs LIST ------------------
+@app.route("/api/systems", methods=["GET"])
+def get_systems():
+    db = SessionLocal()
+    systems = db.query(System).all()
+    db.close()
+
+    return jsonify([
+        {
+            "id": s.id,
+            "system_name": s.system_name,
+            "os_name": s.os_name,
+            "ip_address": s.ip_address,
+            "created_at": s.created_at.strftime("%Y-%m-%d %H:%M")
+        }
+        for s in systems
+    ])
 
 
 # --------------- LOGIN SYSTEM ------------------
