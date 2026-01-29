@@ -25,12 +25,24 @@ export function AutoRemediationTools() {
 
   // ✅ FETCH FROM BACKEND (ONLY SOURCE)
   useEffect(() => {
-    fetch("http://localhost:8000/api/remediation")
-      .then((res) => res.json())
-      .then(setTools)
-      .catch(() => setTools([]))
-  }, [])
+  fetch("http://localhost:8000/api/remediation")
+    .then(res => res.json())
+    .then(data => {
+      setTools(data.remediationTools ?? [])
+    })
+    .catch(() => setTools([]))
+}, [])
 
+  const run_remediation = async (system: string) => {
+  const res = await fetch("http://localhost:8000/api/remediation/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ system })
+  })
+
+  const data = await res.json()
+  alert(data.message)
+}
   const handleRunTool = (toolId: number) => {
     setRunningTools((prev) => [...prev, toolId])
 

@@ -47,40 +47,53 @@ const EMPTY_DATA: DashboardData = {
 // =======================
 // MAIN HOOK
 // =======================
+// frontend/hooks/use-api-data.ts (Updated Logic)
 
 export function useDashboardData(): DashboardData {
   const [data, setData] = useState<DashboardData>(EMPTY_DATA)
+  const [lastUpdated, setLastUpdated] = useState("")
+
+  useEffect(() => {
+    setLastUpdated(new Date().toLocaleString())
+  }, [])
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetching data from the backend container/localhost
-        const res = await fetch("http://localhost:8000/api/dashboard/overview")
-        
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`)
-        }
-        
-        const backend = await res.json()
+        // 1. Fetch Overview (Score, Total Issues)
+        const overviewRes = await fetch("http://localhost:8000/api/dashboard/overview")
+        const overview = await overviewRes.json()
 
-        // Correctly mapping backend response fields to the frontend state
+        // 2. Fetch Detailed Vulnerabilities (The simulated library findings)
+        const vulnsRes = await fetch("http://localhost:8000/api/vulnerabilities")
+        const vulnerabilities = await vulnsRes.json()
+
         setData({
-          auditResults: backend.auditResults ?? [],
-          vulnerabilities: backend.vulnerabilities ?? [],
-          securityScore: backend.securityScore ?? 20.95,
-          lastUpdated: new Date().toLocaleString(),
-          notificationCount: backend.totalIssues ?? 0,
+          securityScore: overview.securityScore ?? 0,
+          notificationCount: overview.totalIssues ?? 0,
+          lastUpdated,
+          // Use the actual simulated vulnerabilities from the backend library
+          vulnerabilities: vulnerabilities.map((v: any) => ({
+            ...v,
+            dateDetected: new Date().toISOString(),
+          })),
+          // Map the same vulnerabilities to Audit Results for consistency
+          auditResults: vulnerabilities.map((v: any) => ({
+            id: `AUDIT-${v.id}`,
+            severity: v.severity,
+            category: v.category,
+            description: v.description,
+            system: v.system
+          }))
         })
-
       } catch (error) {
         console.error("Dashboard fetch failed:", error)
-        // Reverting to empty state on failure
         setData(EMPTY_DATA)
       }
     }
 
-    fetchData()
-  }, [])
+    if (lastUpdated) fetchData()
+  }, [lastUpdated])
 
   return data
 }
