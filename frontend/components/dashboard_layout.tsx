@@ -8,7 +8,7 @@ import { AuditResults } from "@/components/audit-results"
 import { VulnerabilitiesThreats } from "@/components/vulnerabilities-threats"
 import { AutoRemediationTools } from "@/components/auto-remediation-tools"
 import { ComplianceReports } from "@/components/compliance-reports"
-import { SettingsUserManagement } from "@/components/settings-user-management"
+// import { SettingsUserManagement } from "@/components/settings-user-management"
 
 export default function DashboardLayout() {
   const [activeView, setActiveView] = useState("dashboard")
@@ -24,8 +24,8 @@ export default function DashboardLayout() {
         return <AutoRemediationTools />
       case "compliance":
         return <ComplianceReports />
-      case "settings":
-        return <SettingsUserManagement />
+      // case "settings":
+      //   return <SettingsUserManagement />
       default:
         return <DashboardOverview />
     }

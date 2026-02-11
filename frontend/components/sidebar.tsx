@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   Wrench,
   FileCheck,
-  Settings,
+  // Settings,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -26,7 +26,7 @@ export function Sidebar({ activeView, setActiveView, collapsed, setCollapsed }: 
     { id: "vulnerabilities", label: "Vulnerabilities & Threats", icon: AlertTriangle },
     { id: "remediation", label: "Auto-Remediation Tools", icon: Wrench },
     { id: "compliance", label: "Compliance Reports", icon: FileCheck },
-    { id: "settings", label: "Settings & User Management", icon: Settings },
+    // { id: "settings", label: "Settings & User Management", icon: Settings },
   ]
 
   return (

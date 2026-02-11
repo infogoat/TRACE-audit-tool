@@ -9,6 +9,8 @@ import requests
 import time
 import sys
 
+ADMIN_HOSTNAME = socket.gethostname()
+
 # --- Configuration ---
 # NOTE: Update the BACKEND_URL to your actual server address.
 BACKEND_REGISTER_URL = "http://localhost:8000/api/agents/register"
@@ -20,12 +22,14 @@ OUT_DIR = "windows-audit-cis-main/outputs"
 REPORT_FILE = os.path.join(OUT_DIR, "report.json")
 
 def register_agent():
-    payload = {
-        "hostname": platform.node(),
-        "os": platform.system(),
-        "user_id": 1   # later from login / provisioning
-    }
+    system_info = get_system_info()
 
+    payload = {
+        "system_name": system_info["system_name"],
+        "os_name": system_info["os_name"],
+        "ip_address": system_info["ip_address"],
+        "role": system_info["role"]
+    }
     r = requests.post(BACKEND_REGISTER_URL, json=payload)
     r.raise_for_status()
 
@@ -44,26 +48,29 @@ def load_agent_config():
 def get_system_info():
     hostname = socket.gethostname()
 
+    # Decide role
+    role = "AGENT"
+    if hostname == ADMIN_HOSTNAME:
+        role = "ADMIN"
+
     try:
         ip_address = socket.gethostbyname(hostname)
 
-        # Fallback if localhost IP comes
         if ip_address.startswith("127."):
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
-                # connect to public IP, no data sent
                 s.connect(("8.8.8.8", 80))
                 ip_address = s.getsockname()[0]
             finally:
                 s.close()
-
     except Exception:
         ip_address = "unknown"
 
     return {
         "system_name": hostname,
         "os_name": platform.system(),
-        "ip_address": ip_address
+        "ip_address": ip_address,
+        "role": role
     }
 
 
